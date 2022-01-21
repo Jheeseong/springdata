@@ -6,6 +6,7 @@ import study.springData.entity.Member;
 
 import javax.persistence.EntityManager;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
@@ -18,12 +19,13 @@ public class MemberJpaRepository {
         return member;
     }
 
-    public Member find(Long id) {
-        return em.find(Member.class, id);
+    public Optional<Member> find(Long id) {
+        Member member = em.find(Member.class, id);
+        return Optional.ofNullable(member);
     }
 
     public List<Member> findAll(){
-        return em.createQuery("select m from Member m",Member.class)
+        return em.createQuery("select m from Member m join fetch m.team t",Member.class)
                 .getResultList();
     }
 }
