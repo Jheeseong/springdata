@@ -8,6 +8,8 @@ import lombok.ToString;
 import javax.persistence.*;
 
 @Entity
+@NamedQuery(name = "Member.findByName",
+            query = "select m from Member m where m.name = :name")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @ToString(of = {"id","name","age"})

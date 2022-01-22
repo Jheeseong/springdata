@@ -63,8 +63,21 @@ class MemberJpaRepositoryTest {
             System.out.println("member = " + member);
             System.out.println("member.getTeam() = " + member.getTeam());
         }
+    }
 
+    @Test
+    public void nameQuery() {
+        Member member1 = new Member("memberA");
+        Member member2 = new Member("memberB");
+        Member member3 = new Member("memberC");
 
+        memberJpaRepository.save(member1);
+        memberJpaRepository.save(member2);
+        memberJpaRepository.save(member3);
+
+        List<Member> memberName = memberJpaRepository.findByName(member1.getName());
+
+        System.out.println("memberName = " + memberName);
     }
 
 

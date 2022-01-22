@@ -28,4 +28,10 @@ public class MemberJpaRepository {
         return em.createQuery("select m from Member m join fetch m.team t",Member.class)
                 .getResultList();
     }
+
+    public List<Member> findByName(String name) {
+        return em.createNamedQuery("Member.findByName",Member.class)
+                .setParameter("name",name)
+                .getResultList();
+    }
 }
