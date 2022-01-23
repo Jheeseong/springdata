@@ -4,7 +4,14 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import study.springData.dto.MemberDto;
 import study.springData.entity.Member;
 import study.springData.entity.Team;
@@ -22,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Transactional
+@Rollback(value = false)
 class MemberRepositoryTest {
 
     @Autowired MemberRepository memberRepository;
@@ -136,5 +144,83 @@ class MemberRepositoryTest {
         for (Member member : result) {
             System.out.println("member = " + member);
         }
+    }
+
+    @Test
+    @GetMapping("/page")
+    public void paging() throws Exception{
+
+        memberRepository.save(new Member("member1",10));
+        memberRepository.save(new Member("member2",10));
+        memberRepository.save(new Member("member3",10));
+        memberRepository.save(new Member("member4",10));
+        memberRepository.save(new Member("member5",10));
+        memberRepository.save(new Member("member6",10));
+
+        PageRequest pageRequest = PageRequest.of(1, 2, Sort.by(Sort.Direction.DESC, "name"));
+        //Page<Member> page = memberRepository.findPagingByAge(10, pageRequest);
+        Slice<Member> slice = memberRepository.findSliceByAge(10, pageRequest);
+
+        List<Member> content = slice.getContent();
+        for (Member member : content) {
+            System.out.println("member = " + member);
+        }
+        //assertThat(slice.getTotalElements()).isEqualTo(6);
+        //assertThat(slice.getTotalPages()).isEqualTo(3);
+        assertThat(slice.getNumber()).isEqualTo(1);
+        assertThat(slice.hasNext()).isTrue();
+
+    }
+
+    @Test
+    public void bulkUpdateQuery() throws Exception {
+
+        memberRepository.save(new Member("member1", 10));
+        memberRepository.save(new Member("member2", 15));
+        memberRepository.save(new Member("member3", 20));
+        memberRepository.save(new Member("member4", 24));
+        memberRepository.save(new Member("member5", 35));
+        memberRepository.save(new Member("member6", 41));
+
+        int ageUpdate = memberRepository.bulkAgeUpdate(20);
+
+        assertThat(ageUpdate).isEqualTo(4);
+      }
+
+      @Test
+      public void entityGrapeMethod() {
+          Team teamA = teamRepository.save(new Team("teamA"));
+          Team teamB = teamRepository.save(new Team("teamB"));
+
+          memberRepository.save(new Member("memberA",10,teamA));
+        memberRepository.save(new Member("memberB",10,teamA));
+        memberRepository.save(new Member("memberC",10,teamB));
+
+        em.flush();
+        em.clear();
+
+          List<Member> result = memberRepository.findEntityGraphByName("memberA");
+
+          for (Member member : result) {
+              System.out.println("member.getName() = " + member.getName());
+              System.out.println("member.getTeam().getName() = " + member.getTeam().getName());
+          }
+      }
+
+    @Test
+    public void JpaHintMethod() {
+        Team teamA = teamRepository.save(new Team("teamA"));
+        Team teamB = teamRepository.save(new Team("teamB"));
+
+        memberRepository.save(new Member("memberA",10,teamA));
+        memberRepository.save(new Member("memberB",10,teamA));
+        memberRepository.save(new Member("memberC",10,teamB));
+
+        em.flush();
+        em.clear();
+
+        //Member memberA = memberRepository.findJpaHintByName("memberA");
+        Member memberA = memberRepository.findLockByName("memberA");
+        memberA.setName("memberB");
     }
 }

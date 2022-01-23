@@ -13,6 +13,7 @@ import javax.persistence.PersistenceContext;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.withinPercentage;
 
 @SpringBootTest
 @Transactional
@@ -78,6 +79,38 @@ class MemberJpaRepositoryTest {
         List<Member> memberName = memberJpaRepository.findByName(member1.getName());
 
         System.out.println("memberName = " + memberName);
+    }
+
+    @Test
+    public void paging() throws Exception{
+        
+        memberJpaRepository.save(new Member("member1",10));
+        memberJpaRepository.save(new Member("member2",10));
+        memberJpaRepository.save(new Member("member3",10));
+        memberJpaRepository.save(new Member("member4",10));
+        memberJpaRepository.save(new Member("member5",10));
+        memberJpaRepository.save(new Member("member6",10));
+
+        List<Member> members = memberJpaRepository.findByPage(10, 0, 2);
+        long totalCount = memberJpaRepository.totalCount(10);
+        
+        assertThat(members.size()).isEqualTo(2);
+        assertThat(totalCount).isEqualTo(6);
+        System.out.println("members = " + members);
+    }
+
+    @Test
+    public void bulkUpdate() {
+        memberJpaRepository.save(new Member("member1",10));
+        memberJpaRepository.save(new Member("member2",20));
+        memberJpaRepository.save(new Member("member3",21));
+        memberJpaRepository.save(new Member("member4",30));
+        memberJpaRepository.save(new Member("member5",10));
+        memberJpaRepository.save(new Member("member6",41));
+
+        int ageUpdate = memberJpaRepository.bulkAgeUpdate(20);
+
+        assertThat(ageUpdate).isEqualTo(4);
     }
 
 

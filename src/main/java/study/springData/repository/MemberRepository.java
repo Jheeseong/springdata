@@ -1,12 +1,17 @@
 package study.springData.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import study.springData.dto.MemberDto;
 import study.springData.entity.Member;
 import study.springData.entity.Team;
 
+import javax.persistence.LockModeType;
+import javax.persistence.QueryHint;
 import java.util.List;
 
 public interface MemberRepository extends JpaRepository<Member, Long> {
@@ -31,4 +36,29 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     //컬렉션 파라미터 바인딩
     @Query("select m from Member m where m.name in :names")
     List<Member> findByNames(@Param("names") List<String> names);
+
+    //JPA 페이징과 정렬
+    @Query(value = "select m from Member m",
+            countQuery = "select count(m.name) from Member m")
+    Page<Member> findPagingByAge(int age, Pageable pageable);
+    Slice<Member> findSliceByAge(int age, Pageable pageable);
+    List<Member> findListByAge(int age, Pageable pageable);
+    List<Member> findSortByAge(int age, Sort sort);
+
+    //벌크성 업데이터 쿼리
+    @Modifying
+    @Query("update Member m set m.age = m.age + 1" +
+            " where m.age >= :age")
+    int bulkAgeUpdate(@Param("age") int age);
+
+    //EntityGraph
+    @EntityGraph(attributePaths = "team")
+    List<Member> findEntityGraphByName(@Param("name") String name);
+
+    //JPA Hint & Lock
+    @QueryHints(value = @QueryHint(name = "org.hibernate.readOnly", value = "true"))
+    Member findJpaHintByName(String name);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Member findLockByName(String name);
 }

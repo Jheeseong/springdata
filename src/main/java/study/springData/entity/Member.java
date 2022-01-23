@@ -1,9 +1,6 @@
 package study.springData.entity;
 
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
 import javax.persistence.*;
 
@@ -11,6 +8,7 @@ import javax.persistence.*;
 @NamedQuery(name = "Member.findByName",
             query = "select m from Member m where m.name = :name")
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @ToString(of = {"id","name","age"})
 public class Member {
@@ -38,5 +36,10 @@ public class Member {
     private void ChangeTeam(Team team) {
         this.team = team;
         team.getMembers().add(this);
+    }
+
+    public Member(String name, int age) {
+        this.name = name;
+        this.age = age;
     }
 }
