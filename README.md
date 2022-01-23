@@ -1,6 +1,114 @@
-# springdata
+# springData
+# v1.2 1/23
+## 쿼리 메소드 기능
+### JPA 페이징과 정렬
+**리포지토리**
+
+    //JPA 페이징과 정렬//
+    @Query(value = "select m from Member m",
+            countQuery = "select count(m.name) from Member m")
+    Page<Member> findPagingByAge(int age, Pageable pageable);
+    Slice<Member> findSliceByAge(int age, Pageable pageable);
+    List<Member> findListByAge(int age, Pageable pageable);
+    List<Member> findSortByAge(int age, Sort sort);
+
+    
+**테스트코드**    
+
+    @Test
+    public void paging() throws Exception{
+
+        memberRepository.save(new Member("member1",10));
+        memberRepository.save(new Member("member2",10));
+        memberRepository.save(new Member("member3",10));
+        memberRepository.save(new Member("member4",10));
+        memberRepository.save(new Member("member5",10));
+        memberRepository.save(new Member("member6",10));
+
+        PageRequest pageRequest = PageRequest.of(1, 2, Sort.by(Sort.Direction.DESC, "name"));
+        Page<Member> page = memberRepository.findPagingByAge(10, pageRequest);
+        Slice<Member> slice = memberRepository.findSliceByAge(10, pageRequest);
+
+        List<Member> content = slice.getContent();
+        for (Member member : content) {
+            System.out.println("member = " + member);
+        }
+        assertThat(slice.getTotalElements()).isEqualTo(6);
+        assertThat(slice.getTotalPages()).isEqualTo(3);
+        assertThat(slice.getNumber()).isEqualTo(1);
+        assertThat(slice.hasNext()).isTrue();
+
+    }
+
+
+- Page : count 쿼리 사용, CountQuery를 통해 분리 가능(count 쿼리는 무겁기 떄문, 분리하지 않을 시 join한 데이터 모두 count 쿼리를 사용)
+- slice : count 쿼리 사용 X, 추가로 limit +1을 조회하여 다음 페이지 여부를 확인(최근 모바일 리스트)
+- List : count 쿼리 사용 X
+
+#### 페이지를 유지하며 엔티티를 DTO로 변환
+
+    Page<Member> page = memberRepository.findByAge(10, pageRequest);
+    Page<MemberDto> dtoPage = page.map(m -> new MemberDto());
+
+### 벌크성 수정 쿼리
+**리포지토리**
+
+    @Modifying
+    @Query("update Member m set m.age = m.age + 1 where m.age >= :age")
+    int bulkAgePlus(@Param("age") int age);
+    
+**테스트코드**
+
+    @Test
+    public void bulkUpdateQuery() throws Exception {
+
+        memberRepository.save(new Member("member1", 10));
+        memberRepository.save(new Member("member2", 15));
+        memberRepository.save(new Member("member3", 20));
+        memberRepository.save(new Member("member4", 24));
+        memberRepository.save(new Member("member5", 35));
+        memberRepository.save(new Member("member6", 41));
+
+        int ageUpdate = memberRepository.bulkAgeUpdate(20);
+
+        assertThat(ageUpdate).isEqualTo(4);
+      }
+
+- 벌크성 수정 쿼리는 기존의 더티체킹을 통한 수정이 아닌 업데이트 쿼리를 통해 해당 조건의 데이터를 수정하는 방법
+- 벌크성 수정 쿼리는 @Modifying 어노테이션을 필수적으로 사용
+- 벌스성 쿼리를 실행하고 나서 영속성 컨텍스트 초기화가 필수, 하지 않을 경우 영속성 컨텍스트에 과거 값이 남아있어 문제 발성 가능성이 높음
+- Modifing 영속성 컨텍스트 초기화 : @Modifying(clearAutomatically = true)
+
+### @EntityGraph
+
+    //EntityGraph
+    @EntityGraph(attributePaths = "team")
+    List<Member> findEntityGraphByName(@Param("name") String name);
+
+- 연관된 엔티티들을 SQL 한번에 조회하는 방법
+- **지연로딩으로 인해 데이터 조회 시 쿼리가 1+N 문제**가 발생
+- join fetch 혹은 @EntityGraph를 사용하여 해결
+
+### JPA Hint & Lock
+#### JPA Hint
+    
+    //JPA Hint & Lock
+    @QueryHints(value = @QueryHint(name = "org.hibernate.readOnly", value = "true"))
+    Member findJpaHintByName(String name);
+
+- JPA 쿼리 힌트(SQL 힌트가 아닌 JPA구현체에게 제공하는 힌트)
+- update Query 실행 X
+
+#### Lock
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Member findLockByName(String name);
+
+- 쿼리 마지막에 update가 붙음  
+![image](https://user-images.githubusercontent.com/96407257/150670306-9d158565-938c-421d-80fa-a60e390922e8.png)
+
 # v1.1 1/22
-## 쿼리 베소드 기능
+## 쿼리 메소드 기능
 - 메소드 이름으로 쿼리 생성
 - 메소드 이름으로 JPA NamedQuery 호출
 - @Query 어노테이션을 사용해서 리파지토리 인터페이스에 직접 쿼리
