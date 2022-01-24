@@ -11,7 +11,7 @@ import javax.persistence.*;
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @ToString(of = {"id","name","age"})
-public class Member {
+public class Member extends BaseEntity {
     @Id @GeneratedValue
     private Long id;
     private String name;

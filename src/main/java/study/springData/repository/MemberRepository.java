@@ -14,7 +14,7 @@ import javax.persistence.LockModeType;
 import javax.persistence.QueryHint;
 import java.util.List;
 
-public interface MemberRepository extends JpaRepository<Member, Long> {
+public interface MemberRepository extends JpaRepository<Member, Long>, MemberRepositoryCustom {
 
     //NamedQuery 사용
     @Query(name = "Member.findByName")
@@ -59,6 +59,8 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     @QueryHints(value = @QueryHint(name = "org.hibernate.readOnly", value = "true"))
     Member findJpaHintByName(String name);
 
+    //CustomImpl
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Member findLockByName(String name);
+
 }

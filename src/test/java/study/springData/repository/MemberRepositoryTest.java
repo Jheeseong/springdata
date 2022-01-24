@@ -147,7 +147,6 @@ class MemberRepositoryTest {
     }
 
     @Test
-    @GetMapping("/page")
     public void paging() throws Exception{
 
         memberRepository.save(new Member("member1",10));
@@ -222,5 +221,46 @@ class MemberRepositoryTest {
         //Member memberA = memberRepository.findJpaHintByName("memberA");
         Member memberA = memberRepository.findLockByName("memberA");
         memberA.setName("memberB");
+    }
+
+    @Test
+    public void CustomInterface() {
+        Team teamA = teamRepository.save(new Team("teamA"));
+        Team teamB = teamRepository.save(new Team("teamB"));
+
+        memberRepository.save(new Member("memberA",10,teamA));
+        memberRepository.save(new Member("memberB",10,teamA));
+        memberRepository.save(new Member("memberC",10,teamB));
+
+        em.flush();
+        em.clear();
+
+        List<Member> result = memberRepository.findMemberCustom();
+        for (Member member : result) {
+            System.out.println("member = " + member);
+        }
+    }
+
+    @Test
+    public void BaseEntityTime() throws Exception{
+
+        Member member = new Member("member1");
+        memberRepository.save(member);
+
+        Thread.sleep(100);
+        member.setName("member2");
+
+        em.flush();
+        em.clear();
+
+        Member result = memberRepository.findById(member.getId()).get();
+
+        System.out.println("result.getCreateDate() = " + result.getCreateDate());
+        System.out.println("result.getLastModifiedDate() = " + result.getLastModifiedDate());
+        System.out.println("result.getCreateBy() = " + result.getCreateBy());
+        System.out.println("result.getLastModifiedBy() = " + result.getLastModifiedBy());
+
+
+
     }
 }
