@@ -1,4 +1,104 @@
 # springData
+# v1.3 1/24
+# SpringData 확장 기능
+## 사용자 정의 리포지토리
+**MemberRepositoryCustomImpl Class 생성**
+    
+    @RequiredArgsConstructor
+    public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
+
+    private final EntityManager em;
+
+    public List<Member> findMemberCustom() {
+        return em.createQuery("select m from Member m")
+                .getResultList();
+        }
+    }
+    
+**MemberRepositoryCustom Interface 생성**
+
+    public interface MemberRepositoryCustom {
+    List<Member> findMemberCustom();
+    }
+    
+**MemberRepository에 CustomInterface 상속**
+
+    public interface MemberRepository extends JpaRepository<Member, Long>, MemberRepositoryCustom {
+    
+    ....
+    
+    //CustomImpl
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Member findLockByName(String name);
+    
+    ....
+    
+    }
+
+- 스프링 데이터 JPA 리포지토리는 인터페이스만 정의하고 구현체는 스프링이 자동 생성
+- 그러나 스프링 데이터가 제공하는 인터페이스를 직접 구현하면 구현해야 하는 기능이 너무 많음
+- 인터페이스의 메서드를 Impl 상속을 통해 구현 가능
+ 
+## Auditing
+- 엔티티를 생성, 변경할 때 등의 경우에 등록일, 수정일, 등록자, 수정자 추적 가능
+- 데이터가 중복 저장되는 것처럼 보이지만, 이렇게 설계 시 변경 컬럼만 확인해도 마지막 업데이트 유저를 알 수 있어 유지관리가 편리
+
+**BaseEntity 생성**
+    
+    @EntityListeners(AuditingEntityListener.class)
+    @MappedSuperclass
+    @Getter
+    public class BaseEntity {
+
+        @CreatedDate
+        @Column(updatable = false)
+        private LocalDateTime createDate;
+
+        @LastModifiedDate
+        private LocalDateTime lastModifiedDate;
+
+        @CreatedBy
+        @Column(updatable = false)
+        private String createBy;
+
+        @LastModifiedBy
+        private String lastModifiedBy;
+    }
+    
+**Member, Team 엔티티에 상속**
+
+    public class Member extends BaseEntity {
+    ....
+    }
+    
+    public class Team extends BaseEntity {
+    ....
+    }
+    
+**Test code**
+
+    @Test
+    public void BaseEntityTime() throws Exception{
+
+        Member member = new Member("member1");
+        memberRepository.save(member);
+
+        Thread.sleep(100);
+        member.setName("member2");
+
+        em.flush();
+        em.clear();
+
+        Member result = memberRepository.findById(member.getId()).get();
+
+        System.out.println("result.getCreateDate() = " + result.getCreateDate());
+        System.out.println("result.getLastModifiedDate() = " + result.getLastModifiedDate());
+        System.out.println("result.getCreateBy() = " + result.getCreateBy());
+        System.out.println("result.getLastModifiedBy() = " + result.getLastModifiedBy());
+
+
+
+    }
 # v1.2 1/23
 ## 쿼리 메소드 기능
 ### JPA 페이징과 정렬
