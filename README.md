@@ -1,4 +1,52 @@
 # springData
+# v1.4 1/25
+# SpringData 확장 기능
+## WEB - 도메인 클래스 컨버터
+    
+    // 도메인 클래스 컨버터
+    @GetMapping("/members/{id}")
+    public String findMember(@PathVariable("id") Member member) {
+        return member.getName();
+    }
+    
+- HTTP 파라미터로 넘어온 엔티티 id를 도베인 클래스 컨버터가 동작해서 회원 엔티티 객체 반환
+- 도메인 클래스 컨버터도 리파지토리를 사용하여 엔티티 발견
+- 도메인 클래스 컨버터로 엔티티 받을 시 단순 조회용으로만 사용 가능
+
+## WEB - 페이징과 정렬
+
+    // 페이징과 정렬
+    @GetMapping("/members/page")
+    public Page<Member> list(Pageable pageable) {
+        Page<Member> page = memberRepository.findAll(pageable);
+        return page;
+    }
+    
+- 파라미터로 Pageable을 받을 수 잇다
+- 요청 파라미터 설정
+  - ex) /members?page=0&size=3&sort=id,desc&sort=username,desc
+  - page : 현재 페이지, 0부터 시작(기본 페이지 사이즈 = 20)
+  - size : 한 페이지에 노출할 데이터 건수
+  - sort : 정렬 조건을 정의
+- @PageableDefault 어노테이션을 사용하여서도 page, size, sort 설정 가능
+- 접두사 : 페이지 정보가 둘 이상일 경우 접두사로 구분, @Qualifier에 접두사명 추가
+
+### DTO 페이징
+
+    // 페이징과 정렬
+    @GetMapping("/members/page")
+    public Page<MemberDto> list(Pageable pageable) {
+        Page<Member> page = memberRepository.findAll(pageable);
+        Page<MemberDto> map = page.map(member -> new MemberDto(member.getId(), member.getName(), null));
+        return map;
+    }
+    
+### 페이징 1부터 시작
+- 스프링 데이터는 page를 0부터 시작
+- 해경 방법
+  - Pageable,Page를 파라미터와 응답 값으로 사용하지 않고, 직접 클래스를 만들어서 처리. 그 후 직접 PageRequest(Pageable 구현체)를 생성해서 리포지토리로 전송. 응답 값도 Page 대신 직접 만들어 제공
+  - spring.data.web.pageable.one-indexed-parameters 를 True로 설정. 하지만 이 방법은 web에서 page 파라미터를 -1로 처리 할 뿐 응답 값 page를 변경시키지는 않는 한계가 존재
+
 # v1.3 1/24
 # SpringData 확장 기능
 ## 사용자 정의 리포지토리
