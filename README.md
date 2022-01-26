@@ -1,4 +1,52 @@
 # springData
+# v1.5 1/26
+# 스프링 데이터 JPA 분석
+## 스프링 데이터 JPA 구현체 분석
+- JPA 구현체는 기본적으로 @Repository를 적용 : JPA 예외를 스프링이 추상화한 예외로 변환
+- @Transactional 트랜잭션 적용
+  - JPA의 모든 변경은 트랜잭션 안에서 동작
+  - JPA 의 기본은 **readOnly = true**를 통해 조회만 가능하지만 등록,수정, 삭제 메소드 실행 시 트랜잭션 **readOnly = false** 가 동작
+  - 서비스 계층에서 트랙잭션 실행하지 않을 시 리파지토리에서 트랙잭션이 시작, 서비스 계층에서 트랜잭션 실행 시 리파지토리는 해당 트랜잭션을 전파 받아 사용
+  - 스프링 데이터 JPA 사용 시 트랜잭션 없이도 데이터 등록,변경이 가능했던 이유
+
+## 새로운 엔티티 구별 방법
+- save 메서드
+  - 새로운 엔티티면 저장(persist)
+  - 새로운 엔티티가 아니면 병합(merge)
+
+- 새로운 엔티티 판단 기본 전략
+  - 식별자가 객체일 때 **null**로 반환
+  - 식별자가 자바 기본 타입일 때 0으로 판단  
+  -> persistable 인터페이스를 구현하여 판단 로직 변경 가능
+ 
+ 
+        @Entity
+        @Getter
+        @EntityListeners(AuditingEntityListener.class)
+        public class Item implements Persistable<String> {
+
+           @Id
+           private String id;
+
+           @CreatedDate
+           private LocalDateTime createDate;
+
+           public Item(String id) {
+               this.id = id;
+           }
+
+           @Override
+           public boolean isNew() {
+               return createDate == null;
+           }
+        }
+        
+- @GenerateValue가 있을 땐 save() 호출 시점에 식별자가 없으므로 새로운 엔티티로 인식해서 정삭 동작. 
+- 하지만 @Id만 사용해 직접 할당하게 된다면 이미 값이 있는 상태로 save를 호출. 
+- 따라서 merge가 호출되어 동작
+- Persistable를 사용해서 새로운 엔티티 확인 여부를 직접 구현
+- 여기 코드에서는 @CreateDate를 조합하여 새로운 엔티티 여부를 판단하도록 설계
+
 # v1.4 1/25
 # SpringData 확장 기능
 ## WEB - 도메인 클래스 컨버터
