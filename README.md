@@ -1,4 +1,152 @@
 # springData
+# v1.4 1/25
+# SpringData 확장 기능
+## WEB - 도메인 클래스 컨버터
+    
+    // 도메인 클래스 컨버터
+    @GetMapping("/members/{id}")
+    public String findMember(@PathVariable("id") Member member) {
+        return member.getName();
+    }
+    
+- HTTP 파라미터로 넘어온 엔티티 id를 도베인 클래스 컨버터가 동작해서 회원 엔티티 객체 반환
+- 도메인 클래스 컨버터도 리파지토리를 사용하여 엔티티 발견
+- 도메인 클래스 컨버터로 엔티티 받을 시 단순 조회용으로만 사용 가능
+
+## WEB - 페이징과 정렬
+
+    // 페이징과 정렬
+    @GetMapping("/members/page")
+    public Page<Member> list(Pageable pageable) {
+        Page<Member> page = memberRepository.findAll(pageable);
+        return page;
+    }
+    
+- 파라미터로 Pageable을 받을 수 잇다
+- 요청 파라미터 설정
+  - ex) /members?page=0&size=3&sort=id,desc&sort=username,desc
+  - page : 현재 페이지, 0부터 시작(기본 페이지 사이즈 = 20)
+  - size : 한 페이지에 노출할 데이터 건수
+  - sort : 정렬 조건을 정의
+- @PageableDefault 어노테이션을 사용하여서도 page, size, sort 설정 가능
+- 접두사 : 페이지 정보가 둘 이상일 경우 접두사로 구분, @Qualifier에 접두사명 추가
+
+### DTO 페이징
+
+    // 페이징과 정렬
+    @GetMapping("/members/page")
+    public Page<MemberDto> list(Pageable pageable) {
+        Page<Member> page = memberRepository.findAll(pageable);
+        Page<MemberDto> map = page.map(member -> new MemberDto(member.getId(), member.getName(), null));
+        return map;
+    }
+    
+### 페이징 1부터 시작
+- 스프링 데이터는 page를 0부터 시작
+- 해경 방법
+  - Pageable,Page를 파라미터와 응답 값으로 사용하지 않고, 직접 클래스를 만들어서 처리. 그 후 직접 PageRequest(Pageable 구현체)를 생성해서 리포지토리로 전송. 응답 값도 Page 대신 직접 만들어 제공
+  - spring.data.web.pageable.one-indexed-parameters 를 True로 설정. 하지만 이 방법은 web에서 page 파라미터를 -1로 처리 할 뿐 응답 값 page를 변경시키지는 않는 한계가 존재
+
+# v1.3 1/24
+# SpringData 확장 기능
+## 사용자 정의 리포지토리
+**MemberRepositoryCustomImpl Class 생성**
+    
+    @RequiredArgsConstructor
+    public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
+
+    private final EntityManager em;
+
+    public List<Member> findMemberCustom() {
+        return em.createQuery("select m from Member m")
+                .getResultList();
+        }
+    }
+    
+**MemberRepositoryCustom Interface 생성**
+
+    public interface MemberRepositoryCustom {
+    List<Member> findMemberCustom();
+    }
+    
+**MemberRepository에 CustomInterface 상속**
+
+    public interface MemberRepository extends JpaRepository<Member, Long>, MemberRepositoryCustom {
+    
+    ....
+    
+    //CustomImpl
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Member findLockByName(String name);
+    
+    ....
+    
+    }
+
+- 스프링 데이터 JPA 리포지토리는 인터페이스만 정의하고 구현체는 스프링이 자동 생성
+- 그러나 스프링 데이터가 제공하는 인터페이스를 직접 구현하면 구현해야 하는 기능이 너무 많음
+- 인터페이스의 메서드를 Impl 상속을 통해 구현 가능
+ 
+## Auditing
+- 엔티티를 생성, 변경할 때 등의 경우에 등록일, 수정일, 등록자, 수정자 추적 가능
+- 데이터가 중복 저장되는 것처럼 보이지만, 이렇게 설계 시 변경 컬럼만 확인해도 마지막 업데이트 유저를 알 수 있어 유지관리가 편리
+
+**BaseEntity 생성**
+    
+    @EntityListeners(AuditingEntityListener.class)
+    @MappedSuperclass
+    @Getter
+    public class BaseEntity {
+
+        @CreatedDate
+        @Column(updatable = false)
+        private LocalDateTime createDate;
+
+        @LastModifiedDate
+        private LocalDateTime lastModifiedDate;
+
+        @CreatedBy
+        @Column(updatable = false)
+        private String createBy;
+
+        @LastModifiedBy
+        private String lastModifiedBy;
+    }
+    
+**Member, Team 엔티티에 상속**
+
+    public class Member extends BaseEntity {
+    ....
+    }
+    
+    public class Team extends BaseEntity {
+    ....
+    }
+    
+**Test code**
+
+    @Test
+    public void BaseEntityTime() throws Exception{
+
+        Member member = new Member("member1");
+        memberRepository.save(member);
+
+        Thread.sleep(100);
+        member.setName("member2");
+
+        em.flush();
+        em.clear();
+
+        Member result = memberRepository.findById(member.getId()).get();
+
+        System.out.println("result.getCreateDate() = " + result.getCreateDate());
+        System.out.println("result.getLastModifiedDate() = " + result.getLastModifiedDate());
+        System.out.println("result.getCreateBy() = " + result.getCreateBy());
+        System.out.println("result.getLastModifiedBy() = " + result.getLastModifiedBy());
+
+
+
+    }
 # v1.2 1/23
 ## 쿼리 메소드 기능
 ### JPA 페이징과 정렬
