@@ -41,8 +41,8 @@
            }
         }
         
-- @GenerateValue가 있을 땐 save() 호출 시점에 식별자가 없으므로 새로운 엔티티로 인식해서 정삭 동작. 
-- 하지만 @Id만 사용해 직접 할당하게 된다면 이미 값이 있는 상태로 save를 호출. 
+- @GenerateValue가 있을 땐 save() 호출 시점에 식별자가 없으므로 새로운 엔티티로 인식해서 정삭 동작.
+- 하지만 @Id만 사용해 직접 할당하게 된다면 이미 값이 있는 상태로 save를 호출.
 - 따라서 merge가 호출되어 동작
 - Persistable를 사용해서 새로운 엔티티 확인 여부를 직접 구현
 - 여기 코드에서는 @CreateDate를 조합하여 새로운 엔티티 여부를 판단하도록 설계
@@ -91,7 +91,7 @@
     
 ### 페이징 1부터 시작
 - 스프링 데이터는 page를 0부터 시작
-- 해경 방법
+- 해결 방법
   - Pageable,Page를 파라미터와 응답 값으로 사용하지 않고, 직접 클래스를 만들어서 처리. 그 후 직접 PageRequest(Pageable 구현체)를 생성해서 리포지토리로 전송. 응답 값도 Page 대신 직접 만들어 제공
   - spring.data.web.pageable.one-indexed-parameters 를 True로 설정. 하지만 이 방법은 web에서 page 파라미터를 -1로 처리 할 뿐 응답 값 page를 변경시키지는 않는 한계가 존재
 
